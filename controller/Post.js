@@ -174,7 +174,7 @@ exports.getBookmarksByUserId = (req, res, next) => {
   setTimeout(() => {
     req.bookmarksList = posts;
     next();
-  }, 1050);
+  }, 1000);
 };
 
 exports.getBookmarks = (req, res) => {
@@ -191,6 +191,7 @@ exports.getFriendPostForId = (req, res, next) => {
       Post.find({ user: friend._id })
         .populate("user", "_id , username")
         .select("-photo")
+        .sort({ createdAt: "desc" })
         .exec((error, post) => {
           if (error) {
             return res.status(400).json({

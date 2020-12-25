@@ -31,7 +31,7 @@ exports.getUserByFriendId = (req, res, next, id) => {
 exports.getNotifications = (req, res) => {
   Notification.find({ to_user: req.user._id })
     .populate("from_user")
-    .sort("-createdDate")
+    .sort("-createdAt")
     .exec((error, notifications) => {
       if (error) {
         return res.status(400).json({
