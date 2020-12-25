@@ -159,7 +159,7 @@ exports.getBookmarksByUserId = (req, res, next) => {
       Post.findById(_id)
         .populate("user", "_id  name")
         .select("-photo")
-        .sort("desc")
+        .sort({ createdAt: "desc" })
         .exec((err, post) => {
           if (err) {
             return res.status(400).json({
