@@ -174,7 +174,7 @@ exports.getBookmarksByUserId = (req, res, next) => {
   setTimeout(() => {
     req.bookmarksList = posts;
     next();
-  }, 1000);
+  }, 1050);
 };
 
 exports.getBookmarks = (req, res) => {
