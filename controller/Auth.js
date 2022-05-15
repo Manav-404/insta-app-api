@@ -2,6 +2,8 @@ const { validationResult } = require("express-validator");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const expressJwt = require("express-jwt");
+const sendEmail = require("../utils/sendEmail");
+const welcomeEmail = require("../utils/emailTemplate");
 
 exports.signup = (req, res) => {
   const errors = validationResult(req);
@@ -10,6 +12,15 @@ exports.signup = (req, res) => {
       error: errors.array()[0].msg,
     });
   }
+
+  User.findOne({
+    email: req.body.email
+  }).then((response)=>{
+    if(response){
+      return res.status(400).json({
+        error: "Email Id already exists",
+      });
+    }
 
   const user = new User(req.body);
   user.save((err, user) => {
@@ -20,11 +31,16 @@ exports.signup = (req, res) => {
       });
     }
 
+    let emailSent = sendEmail('Welcome to Insta Clone', welcomeEmail(user), user)
+    console.log(emailSent)
     return res.json({
       username: user.username,
       id: user._id,
     });
   });
+  })
+
+  
 };
 
 exports.signin = (req, res) => {
@@ -55,12 +71,12 @@ exports.signin = (req, res) => {
     });
 
     res.cookie("token", token);
-    const { _id, username, name, following } = user;
+    const { _id, username, name, following, photo } = user;
     if (following.length === 0) {
       let following = [];
-      return res.json({ token, user: { _id, username, name, following } });
+      return res.json({ token, user: { _id, username, name, following, photo } });
     } else {
-      return res.json({ token, user: { _id, username, name, following } });
+      return res.json({ token, user: { _id, username, name, following, photo } });
     }
   });
 };

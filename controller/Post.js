@@ -5,6 +5,7 @@ const fs = require("fs");
 const Comment = require("../models/Comment");
 const User = require("../models/User");
 const { post } = require("../routes/Post");
+const uploadImage = require("../utils/uploadImage");
 
 exports.getPostById = (req, res, next, id) => {
   Post.findById(id).exec((err, data) => {
@@ -22,7 +23,6 @@ exports.getPostById = (req, res, next, id) => {
 exports.getPostsForUserId = (req, res) => {
   Post.find({ user: req.user._id })
     .populate("user", "_id , username ")
-    .select("-photo")
     .exec((err, posts) => {
       if (err) {
         return res.status(400).json({
@@ -70,25 +70,26 @@ exports.createPost = (req, res) => {
     }
 
     post.user = req.user;
-    post.photo.data = fs.readFileSync(file.photo.path);
-    post.photo.contentType = file.photo.type;
-
-    post.save((error, post) => {
-      if (error) {
-        return res.status(400).json({
-          error: "Problem in creating post. Please try again.",
-        });
-      }
-      return res.json(post);
-    });
+    let photo = fs.readFileSync(file.photo.path);
+    let uploadLink = uploadImage(photo, file.photo.name.split('.').pop(), file.photo.name.split('.')[0])
+    .then((link)=>{
+      post.photo = link    
+      post.save((error, post) => {
+        if (error) {
+          return res.status(400).json({
+            error: "Problem in creating post. Please try again.",
+          });
+        }
+        return res.json(post);
+      });
+    }).catch(err=>console.log('s3 upload error' , error))
+    
   });
 };
 
-exports.photo = (req, res, next) => {
-  if (req.post.photo.data) {
-    res.set("Content-Type", req.post.photo.contentType);
-    res.send(req.post.photo.data);
-    next();
+exports.photo = (req, res) => {
+  if (req.post.photo) {
+    res.send(req.post.photo);
   }
 };
 
@@ -111,7 +112,7 @@ exports.createPostComment = (req, res) => {
 
 exports.getAllPostCommentsByPostId = (req, res) => {
   Comment.find({ post: req.post._id })
-    .populate("user", "_id username")
+    .populate("user", "_id username, photo")
     .exec((error, comments) => {
       if (error) {
         return res.status(400).json({
@@ -157,8 +158,7 @@ exports.getBookmarksByUserId = (req, res, next) => {
     bookmarks.map((bookmark) => {
       let _id = bookmark._id;
       Post.findById(_id)
-        .populate("user", "_id  name")
-        .select("-photo")
+        .populate("user", "_id  name, photo")
         .sort({ createdAt: "desc" })
         .exec((err, post) => {
           if (err) {
@@ -189,8 +189,7 @@ exports.getFriendPostForId = (req, res, next) => {
   if (friends.length > 0) {
     friends.map((friend, index) => {
       Post.find({ user: friend._id })
-        .populate("user", "_id , username")
-        .select("-photo")
+        .populate("user", "_id username photo")
         .sort({ createdAt: "desc" })
         .exec((error, post) => {
           if (error) {
@@ -220,6 +219,5 @@ exports.getFriendPosts = (req, res) => {
 exports.getPostByPostId = (req, res) => {
   const post = req.post;
   post.user = undefined;
-  post.photo = undefined;
   return res.json(post);
 };

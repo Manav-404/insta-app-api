@@ -9,8 +9,7 @@ const PostSchema = new mongoose.Schema(
       required: true,
     },
     photo: {
-      data: Buffer,
-      contentType: String,
+      type: String
     },
     user: {
       type: ObjectId,

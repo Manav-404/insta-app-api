@@ -54,8 +54,7 @@ const UserSchema = new mongoose.Schema(
     },
     link: String,
     photo: {
-      data: Buffer,
-      contentType: String,
+      type: String
     },
   },
   { timestamps: true }

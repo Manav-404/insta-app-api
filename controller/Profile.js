@@ -2,6 +2,7 @@ const User = require("../models/User");
 const formidable = require("formidable");
 const _ = require("lodash");
 const fs = require("fs");
+const uploadImage = require("../utils/uploadImage");
 
 exports.getUserById = (req, res, next, id) => {
   User.findById(id).exec((error, user) => {
@@ -29,11 +30,10 @@ exports.getUserByName = (req, res, next, name) => {
   });
 };
 
-exports.photo = (req, res, next) => {
-  if (req.user.photo.data) {
-    res.set("Content-Type", req.user.photo.type);
-    res.send(req.user.photo.data);
-    next();
+exports.photo = (req, res) => {
+  if (req.user.photo) {
+    console.log(req.user.photo)
+    res.send(req.user.photo);
   }
 };
 
@@ -42,9 +42,7 @@ exports.getProfileByUserId = (req, res) => {
   req.user.encry_password = undefined;
   req.user.createdAt = undefined;
   req.user.updatedAt = undefined;
-  req.user.photo = undefined;
   req.user.email = undefined;
-  req.user.salt = undefined;
   return res.json(req.user);
 };
 
@@ -56,7 +54,6 @@ exports.getProfileBySearch = (req, res) => {
     user.encry_password = undefined;
     user.createdAt = undefined;
     user.updatedAt = undefined;
-    user.photo = undefined;
     finalList.push(user);
   });
 
@@ -92,24 +89,29 @@ exports.createProfile = (req, res) => {
     let user = req.user;
 
     user = _.extend(user, feilds);
-    user.photo.data = fs.readFileSync(file.photo.path);
-    user.photo.contentType = file.photo.type;
-
-    user.save((error, user) => {
-      if (error) {
-        return res.status(400).json({
-          error: "Problem in updating the profile",
-        });
-      }
-
-      const { _id, username, name, following } = user;
-      if (following.length === 0) {
-        let following = [];
-        return res.json({ _id, username, name, following });
-      } else {
-        return res.json({ _id, username, name, following });
-      }
-    });
+    let picture = fs.readFileSync(file.photo.path);
+    uploadImage(picture, file.photo.name.split('.').pop(), file.photo.name.split('.')[0])
+    .then((link)=>{
+      user.photo = link
+      user.save((error, user) => {
+        console.log(error)
+        if (error) {
+          return res.status(400).json({
+            error: "Problem in updating the profile",
+          });
+        }
+  
+        const { _id, username, name, following } = user;
+        if (following.length === 0) {
+          let following = [];
+          return res.json({ _id, username, name, following });
+        } else {
+          return res.json({ _id, username, name, following });
+        }
+      });
+    }).catch(err=>console.log('s3 upload error',err))
+    
+   
   });
 };
 
